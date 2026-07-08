@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "A portfolio item containing image/video work details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "title": { "type": "object" },
+        "description": { "type": "object" },
+        "year": { "type": "string" },
+        "location": { "type": "string" }
+      },
+      "required": ["id", "url", "category", "aspectRatio", "title", "description", "year", "location"]
+    },
+    "AppConfig": {
+      "title": "App Config",
+      "description": "The configuration for the hero section, about page, packages, styles and promotions",
+      "type": "object",
+      "properties": {
+        "hero": { "type": "object" },
+        "about": { "type": "object" },
+        "promotions": { "type": "object" },
+        "packages": { "type": "object" },
+        "style": { "type": "object" }
+      }
+    },
+    "SavedBudget": {
+      "title": "Saved Budget",
+      "description": "An AI-generated event budget proposal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientEmail": { "type": "string" },
+        "clientNeeds": { "type": "string" },
+        "pricingConfig": { "type": "object" },
+        "generatedAt": { "type": "string" },
+        "budget": { "type": "object" }
+      },
+      "required": ["id", "clientName", "clientNeeds", "pricingConfig", "generatedAt", "budget"]
+    }
+  },
+  "firestore": {
+    "/portfolio/{id}": {
+      "schema": "PortfolioItem",
+      "description": "Collection of wedding, 15years, and kids photography/videography items."
+    },
+    "/config/settings": {
+      "schema": "AppConfig",
+      "description": "Singleton configuration for the landing page content."
+    },
+    "/budgets/{id}": {
+      "schema": "SavedBudget",
+      "description": "Collection of saved AI-generated budget proposals."
+    }
+  }
+}

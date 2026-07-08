@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidPortfolioItem(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.url is string && data.url.size() <= 2048
+        && data.category is string && data.category.size() <= 50
+        && data.aspectRatio is string && data.aspectRatio.size() <= 50
+        && data.year is string && data.year.size() <= 10
+        && data.location is string && data.location.size() <= 100
+        && data.title is map
+        && data.description is map;
+    }
+
+    function isValidAppConfig(data) {
+      return data.hero is map
+        && data.about is map
+        && data.promotions is map
+        && data.packages is map
+        && data.style is map;
+    }
+
+    function isValidBudget(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.clientName is string && data.clientName.size() <= 200
+        && data.clientNeeds is string && data.clientNeeds.size() <= 4096
+        && data.pricingConfig is map
+        && data.generatedAt is string
+        && data.budget is map;
+    }
+
+    // Portfolio items
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow create: if isValidId(itemId) && isValidPortfolioItem(incoming());
+      allow update: if isValidId(itemId) && isValidPortfolioItem(incoming());
+      allow delete: if true;
+    }
+
+    // Config settings
+    match /config/{docId} {
+      allow read: if true;
+      allow create: if isValidId(docId) && isValidAppConfig(incoming());
+      allow update: if isValidId(docId) && isValidAppConfig(incoming());
+      allow delete: if true;
+    }
+
+    // Budgets
+    match /budgets/{budgetId} {
+      allow read: if true;
+      allow create: if isValidId(budgetId) && isValidBudget(incoming());
+      allow update: if isValidId(budgetId) && isValidBudget(incoming());
+      allow delete: if true;
+    }
+  }
+}

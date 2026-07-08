@@ -1,0 +1,6 @@
+{
+  "name": "ST FILMES - Portfólio Fotográfico",
+  "description": "Portfólio fotográfico de alta costura e estilo 'Gloss' para a ST FILMES, com galerias dinâmicas, suporte multilíngue (Português/Espanhol) e design minimalista sofisticado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
