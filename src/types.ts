@@ -180,3 +180,11 @@ export interface SavedBudget {
   budget: AIBudget;
 }
 
+export interface AdminAuthorization {
+  email: string;
+  displayName: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+  photoURL?: string;
+}
+
