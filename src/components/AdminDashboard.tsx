@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { PortfolioItem, AppConfig } from '../types';
-import { X, Save, Plus, Trash2, RotateCcw, Image, Video, Eye, EyeOff, Sparkles, Check, Pencil, AlertCircle } from 'lucide-react';
+import { PortfolioItem, AppConfig, AdminAuthorization } from '../types';
+import { 
+  X, Save, Plus, Trash2, RotateCcw, Image, Video, Eye, EyeOff, Sparkles, Check, 
+  Pencil, AlertCircle, Shield, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, 
+  Clock, UserCheck, UserX, LogOut, User, Lock, Mail 
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import AIBudgetGenerator from './AIBudgetGenerator';
-import { subscribeToAuthError } from '../lib/firestoreService';
+import { 
+  subscribeToAuthError, 
+  listenToAdminAuthorizations, 
+  updateAdminStatus, 
+  deleteAdminAuthorization 
+} from '../lib/firestoreService';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -13,12 +22,45 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDashboardProps) {
-  const { config, portfolio, isAdmin, loginAdmin, logoutAdmin, updateConfig, updatePortfolio, resetToDefaults } = useApp();
+  const { 
+    config, 
+    portfolio, 
+    isAdmin, 
+    loginAdmin, 
+    loginWithGoogle, 
+    logoutAdmin, 
+    updateConfig, 
+    updatePortfolio, 
+    resetToDefaults,
+    adminUser,
+    adminStatus
+  } = useApp();
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'promo' | 'packages' | 'portfolio' | 'budget' | 'whatsapp'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'promo' | 'packages' | 'portfolio' | 'budget' | 'whatsapp' | 'admins'>('hero');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  
+  const [adminAuthorizations, setAdminAuthorizations] = useState<AdminAuthorization[]>([]);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginFeedback, setLoginFeedback] = useState<string | null>(null);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+
+  const isSuperAdmin = adminUser && (adminUser.email === 'safeness.c.a@gmail' || adminUser.email === 'safeness.c.a@gmail.com');
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      const unsubscribe = listenToAdminAuthorizations(
+        (data) => {
+          setAdminAuthorizations(data);
+        },
+        (error) => {
+          console.error("Error loading admin authorizations:", error);
+        }
+      );
+      return unsubscribe;
+    }
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     return subscribeToAuthError((err) => {
@@ -102,6 +144,45 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
       }
     } else {
       setLoginError(true);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoggingIn(true);
+    setLoginFeedback(null);
+    try {
+      const res = await loginWithGoogle();
+      if (res.success) {
+        setLoginFeedback(null);
+        // Reload values in forms on successful login
+        setHeroForm({ ...config.hero });
+        setAboutForm({ ...config.about });
+        setPromoForm({ ...config.promotions });
+        setEditingPortfolio([...portfolio]);
+        if (config.whatsapp) {
+          setWhatsappForm({
+            active: config.whatsapp.active ?? true,
+            phoneNumber: config.whatsapp.phoneNumber ?? "5551999999999",
+            messagePt: config.whatsapp.messagePt ?? "Olá! Gostaria de solicitar um orçamento para o meu evento.",
+            messageEs: config.whatsapp.messageEs ?? "¡Hola! Me gustaría solicitar un presupuesto para mi evento."
+          });
+        }
+      } else {
+        if (res.status === 'pending') {
+          setLoginFeedback(currentLang === 'pt' 
+            ? 'Sua solicitação de acesso está pendente. Peça para o Super Administrador aprovar seu e-mail.' 
+            : 'Tu solicitud de acceso está pendiente. Pídele al Super Administrador que apruebe tu correo.');
+        } else if (res.status === 'rejected') {
+          setLoginFeedback(currentLang === 'pt' 
+            ? 'Acesso recusado pelo Super Administrador.' 
+            : 'Acceso rechazado por el Super Administrador.');
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      setLoginFeedback(err?.message || String(err));
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -288,45 +369,130 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
 
         {/* LOGIN GATE */}
         {!isAdmin ? (
-          <div className="flex-1 flex flex-col items-center justify-center py-20 px-6">
-            <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6 text-center">
-              <div className="space-y-2">
-                <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#C9A96E]">RESTRITO / PRIVADO</span>
-                <h3 className="font-serif text-2xl text-[#141414]">Acesso ao Dashboard</h3>
-                <p className="text-xs text-stone-500 font-sans px-4">
-                  {currentLang === 'pt' 
-                    ? 'Insira seu e-mail de administrador (ex: safeness.c.a@gmail) ou credencial autorizada para acessar o painel de controle.'
-                    : 'Ingrese su correo electrónico de administrador (ej: safeness.c.a@gmail) o credencial autorizada para acceder al panel de control.'}
-                </p>
-              </div>
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 bg-[#FCFAF7]/30 max-w-lg mx-auto w-full">
+            {adminUser && adminStatus === 'pending' ? (
+              <div className="w-full text-center space-y-6">
+                <div className="relative inline-block">
+                  {adminUser.photoURL ? (
+                    <img src={adminUser.photoURL} alt={adminUser.displayName} referrerPolicy="no-referrer" className="w-20 h-20 rounded-full mx-auto border-2 border-[#C9A96E]/40 object-cover shadow-md" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full mx-auto bg-stone-100 flex items-center justify-center border border-[#C9A96E]/20">
+                      <User className="w-8 h-8 text-stone-400" />
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 p-1 bg-amber-500 rounded-full border-2 border-white">
+                    <Clock className="w-4.5 h-4.5 text-white" />
+                  </span>
+                </div>
 
-              <div className="space-y-2 text-left">
-                <input
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-4 py-3 bg-[#FDFCFB] border text-center text-sm font-sans text-[#141414] focus:outline-none focus:ring-1 focus:ring-[#C9A96E] ${
-                    loginError ? 'border-red-400 focus:ring-red-400' : 'border-[#F0EFEA] focus:border-[#C9A96E]'
-                  }`}
-                  placeholder={currentLang === 'pt' ? 'Digite seu e-mail ou identificador' : 'Ingrese su correo o identificador'}
-                  autoFocus
-                />
-                {loginError && (
-                  <p className="text-[11px] text-red-500 font-sans text-center">
-                    {currentLang === 'pt' 
-                      ? 'E-mail ou credencial incorreta ou não autorizada.' 
-                      : 'Correo o credencial incorrecta o no autorizada.'}
+                <div className="space-y-2">
+                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-amber-600 font-semibold">PENDENTE DE AUTORIZAÇÃO / PENDIENTE DE AUTORIZACIÓN</span>
+                  <h3 className="font-serif text-xl text-[#141414]">{adminUser.displayName}</h3>
+                  <p className="text-xs font-mono text-stone-500">{adminUser.email}</p>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 text-xs text-stone-600 space-y-2 max-w-md mx-auto leading-relaxed">
+                  <p>
+                    {currentLang === 'pt'
+                      ? 'Sua conta do Google foi autenticada, mas o acesso ao painel de administração exige autorização expressa do Super Administrador.'
+                      : 'Tu cuenta de Google fue autenticada, pero el acceso al panel de administración requiere autorización expresa del Super Administrador.'}
                   </p>
-                )}
-              </div>
+                  <p className="font-medium text-[#141414]">
+                    {currentLang === 'pt'
+                      ? 'Entre em contato com safeness.c.a@gmail para aprovar seu acesso.'
+                      : 'Ponte en contacto con safeness.c.a@gmail para aprobar tu acceso.'}
+                  </p>
+                </div>
 
-              <button
-                type="submit"
-                className="w-full bg-[#141414] hover:bg-[#C9A96E] text-white font-sans text-xs tracking-[0.25em] uppercase py-3.5 font-semibold transition-colors duration-300 cursor-pointer shadow-xs"
-              >
-                {currentLang === 'pt' ? 'Entrar' : 'Ingresar'}
-              </button>
-            </form>
+                <div className="pt-2">
+                  <button
+                    onClick={logoutAdmin}
+                    className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-sans text-xs uppercase tracking-wider font-semibold rounded transition-all duration-300 flex items-center space-x-2 mx-auto cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>{currentLang === 'pt' ? 'Entrar com outra conta' : 'Entrar con otra cuenta'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : adminUser && adminStatus === 'rejected' ? (
+              <div className="w-full text-center space-y-6">
+                <div className="w-16 h-16 rounded-full mx-auto bg-red-50 flex items-center justify-center border border-red-150 shadow-sm">
+                  <ShieldAlert className="w-8 h-8 text-red-500 animate-bounce" />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-red-600 font-semibold">ACESSO RECUSADO / ACCESO DENEGADO</span>
+                  <h3 className="font-serif text-xl text-[#141414]">{adminUser.displayName}</h3>
+                  <p className="text-xs font-mono text-stone-500">{adminUser.email}</p>
+                </div>
+
+                <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
+                  <p>
+                    {currentLang === 'pt'
+                      ? 'Desculpe, sua solicitação de acesso de administrador foi recusada pelo proprietário do sistema.'
+                      : 'Lo sentimos, tu solicitud de acceso de administrador fue rechazada por el propietario del sistema.'}
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={logoutAdmin}
+                    className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-sans text-xs uppercase tracking-wider font-semibold rounded transition-all duration-300 flex items-center space-x-2 mx-auto cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>{currentLang === 'pt' ? 'Tentar outro e-mail' : 'Intentar otro correo'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full text-center space-y-8">
+                <div className="space-y-2.5">
+                  <div className="w-12 h-12 bg-[#C9A96E]/10 rounded-full mx-auto flex items-center justify-center border border-[#C9A96E]/20 text-[#C9A96E]">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#C9A96E] block font-semibold">RESTRITO / PRIVADO</span>
+                  <h3 className="font-serif text-2xl text-[#141414] tracking-tight">Painel de Administração</h3>
+                  <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto font-sans">
+                    {currentLang === 'pt' 
+                      ? 'O login é realizado exclusivamente por meio de contas Google autorizadas. Caso seja sua primeira vez, uma solicitação de acesso será gerada automaticamente.'
+                      : 'El inicio de sesión se realiza exclusivamente a través de cuentas de Google autorizadas. Si es tu primera vez, se generará una solicitud de acceso automáticamente.'}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <button
+                    onClick={handleGoogleLogin}
+                    disabled={isLoggingIn}
+                    className="w-full bg-[#141414] hover:bg-[#C9A96E] text-white font-sans text-xs tracking-wider uppercase py-3.5 px-6 font-semibold transition-all duration-300 cursor-pointer shadow-md flex items-center justify-center space-x-3 rounded disabled:opacity-50"
+                  >
+                    {isLoggingIn ? (
+                      <div className="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4 fill-current text-[#C9A96E]" viewBox="0 0 24 24">
+                        <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.986 0-.745-.08-1.3-.176-1.86H12.24z"/>
+                      </svg>
+                    )}
+                    <span>
+                      {isLoggingIn 
+                        ? (currentLang === 'pt' ? 'Conectando...' : 'Conectando...') 
+                        : (currentLang === 'pt' ? 'Entrar com o Google' : 'Entrar con Google')}
+                    </span>
+                  </button>
+
+                  {loginFeedback && (
+                    <div className="p-3 bg-red-50 border border-red-100 rounded text-stone-600 text-xs text-center leading-relaxed font-sans">
+                      {loginFeedback}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-stone-100">
+                  <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">
+                    Super Admin: safeness.c.a@gmail
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* MAIN EDITING CONTENT */
@@ -420,6 +586,20 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                       💬 {currentLang === 'pt' ? 'WhatsApp & Asistente' : 'WhatsApp & Asistente'}
                     </button>
                   </li>
+                  {isSuperAdmin && (
+                    <li>
+                      <button
+                        onClick={() => setActiveTab('admins')}
+                        className={`w-full text-left px-4 py-3 rounded transition-all duration-200 ${
+                          activeTab === 'admins' 
+                            ? 'bg-[#C9A96E]/10 text-red-700 font-semibold border-l-2 border-red-600' 
+                            : 'hover:bg-stone-50'
+                        }`}
+                      >
+                        🛡️ {currentLang === 'pt' ? 'Controle de Admins' : 'Gestión de Admins'}
+                      </button>
+                    </li>
+                  )}
                 </ul>
               </div>
 
@@ -1580,6 +1760,196 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                         ✓ {currentLang === 'pt' ? 'Configurações atualizadas no Firebase!' : '¡Configuraciones actualizadas en Firebase!'}
                       </span>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 8: ADMIN MANAGEMENT (SUPER ADMIN ONLY) */}
+              {activeTab === 'admins' && isSuperAdmin && (
+                <div className="space-y-6">
+                  <div className="border-b border-[#F0EFEA] pb-3">
+                    <h4 className="font-serif text-lg italic text-red-800 font-semibold flex items-center space-x-2">
+                      <ShieldCheck className="h-5 w-5 text-red-700" />
+                      <span>{currentLang === 'pt' ? 'Controle de Administradores' : 'Gestión de Administradores'}</span>
+                    </h4>
+                    <p className="text-xs text-stone-500">
+                      {currentLang === 'pt' 
+                        ? 'Adicione, aprove ou revogue acessos de administradores do portfólio.' 
+                        : 'Agregue, apruebe o revoque accesos de administradores del portafolio.'}
+                    </p>
+                  </div>
+
+                  {/* Add Administrator Form */}
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const emailClean = newAdminEmail.trim().toLowerCase();
+                    if (!emailClean || !emailClean.includes('@')) {
+                      return;
+                    }
+                    try {
+                      await updateAdminStatus(emailClean, 'approved');
+                      setNewAdminEmail('');
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }} className="bg-white p-5 rounded border border-[#F0EFEA] space-y-4 shadow-sm">
+                    <h5 className="text-xs font-mono uppercase tracking-wider text-stone-700 font-bold">
+                      {currentLang === 'pt' ? 'Autorizar Novo E-mail Automaticamente' : 'Autorizar Nuevo Correo Automáticamente'}
+                    </h5>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-3 top-2.5 h-4.5 w-4.5 text-stone-400" />
+                        <input
+                          type="email"
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="exemplo@gmail.com"
+                          className="w-full pl-10 pr-3 py-2 bg-stone-50 border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="bg-[#141414] hover:bg-[#C9A96E] text-white px-5 py-2 rounded font-sans text-xs uppercase tracking-wider font-semibold transition-colors flex items-center justify-center space-x-1.5"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        <span>{currentLang === 'pt' ? 'Autorizar' : 'Autorizar'}</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* List of accounts */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-mono uppercase tracking-wider text-stone-500 block">
+                        {currentLang === 'pt' ? 'Solicitações e Usuários' : 'Solicitudes y Usuarios'} ({adminAuthorizations.length})
+                      </span>
+                    </div>
+
+                    <div className="bg-white rounded border border-[#F0EFEA] divide-y divide-[#F0EFEA] overflow-hidden shadow-xs">
+                      {adminAuthorizations.length === 0 ? (
+                        <div className="p-8 text-center text-stone-400 text-xs font-sans">
+                          {currentLang === 'pt' 
+                            ? 'Nenhuma solicitação de acesso ou administrador registrado.' 
+                            : 'Ninguna solicitud de acceso o administrador registrado.'}
+                        </div>
+                      ) : (
+                        adminAuthorizations.map((authDoc) => {
+                          const isDocSuper = authDoc.email === 'safeness.c.a@gmail' || authDoc.email === 'safeness.c.a@gmail.com';
+                          
+                          return (
+                            <div key={authDoc.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-stone-50/50 transition-colors">
+                              <div className="flex items-center space-x-3">
+                                {authDoc.photoURL ? (
+                                  <img 
+                                    src={authDoc.photoURL} 
+                                    alt={authDoc.displayName} 
+                                    referrerPolicy="no-referrer"
+                                    className="w-10 h-10 rounded-full border border-stone-200 object-cover" 
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center border border-stone-200 text-stone-400">
+                                    <User className="h-5 w-5" />
+                                  </div>
+                                )}
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-sans font-medium text-stone-950">
+                                      {authDoc.displayName}
+                                    </span>
+                                    {isDocSuper && (
+                                      <span className="bg-red-50 text-red-700 border border-red-200 text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-full font-bold">
+                                        Super Admin
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs font-mono text-stone-500 block">{authDoc.email}</span>
+                                  {authDoc.requestedAt && (
+                                    <span className="text-[10px] text-stone-400 block">
+                                      {currentLang === 'pt' ? 'Solicitado em: ' : 'Solicitado el: '}
+                                      {new Date(authDoc.requestedAt).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-2 self-end sm:self-auto">
+                                {/* Status badges */}
+                                {authDoc.status === 'approved' && (
+                                  <span className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-mono uppercase px-2 py-0.5 rounded-md font-semibold flex items-center space-x-1">
+                                    <CheckCircle2 className="w-3 h-3 text-green-600" />
+                                    <span>{currentLang === 'pt' ? 'Aprovado' : 'Aprobado'}</span>
+                                  </span>
+                                )}
+                                {authDoc.status === 'pending' && (
+                                  <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-mono uppercase px-2 py-0.5 rounded-md font-semibold flex items-center space-x-1">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>{currentLang === 'pt' ? 'Pendente' : 'Pendiente'}</span>
+                                  </span>
+                                )}
+                                {authDoc.status === 'rejected' && (
+                                  <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-mono uppercase px-2 py-0.5 rounded-md font-semibold flex items-center space-x-1">
+                                    <XCircle className="w-3 h-3 text-red-600" />
+                                    <span>{currentLang === 'pt' ? 'Recusado' : 'Rechazado'}</span>
+                                  </span>
+                                )}
+
+                                {/* Admin Actions */}
+                                {!isDocSuper && (
+                                  <div className="flex items-center space-x-1 border-l border-stone-200 pl-2 ml-1">
+                                    {authDoc.status !== 'approved' && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await updateAdminStatus(authDoc.email, 'approved');
+                                          } catch (e) {
+                                            console.error(e);
+                                          }
+                                        }}
+                                        className="p-1.5 text-stone-500 hover:text-green-600 hover:bg-green-50 rounded transition-all"
+                                        title={currentLang === 'pt' ? 'Aprovar acesso' : 'Aprobar acceso'}
+                                      >
+                                        <UserCheck className="h-4.5 w-4.5" />
+                                      </button>
+                                    )}
+                                    {authDoc.status !== 'rejected' && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await updateAdminStatus(authDoc.email, 'rejected');
+                                          } catch (e) {
+                                            console.error(e);
+                                          }
+                                        }}
+                                        className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                                        title={currentLang === 'pt' ? 'Recusar acesso' : 'Rechazar acceso'}
+                                      >
+                                        <UserX className="h-4.5 w-4.5" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm(currentLang === 'pt' ? `Remover solicitação de ${authDoc.email}?` : `¿Eliminar solicitud de ${authDoc.email}?`)) {
+                                          try {
+                                            await deleteAdminAuthorization(authDoc.email);
+                                          } catch (e) {
+                                            console.error(e);
+                                          }
+                                        }
+                                      }}
+                                      className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded transition-all"
+                                      title={currentLang === 'pt' ? 'Deletar registro' : 'Eliminar registro'}
+                                    >
+                                      <Trash2 className="h-4.5 w-4.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
