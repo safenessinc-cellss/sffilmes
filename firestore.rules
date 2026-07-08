@@ -73,5 +73,10 @@ service cloud.firestore {
       allow update: if isValidId(budgetId) && isValidBudget(incoming());
       allow delete: if true;
     }
+
+    // Admin authorizations
+    match /admin_authorizations/{email} {
+      allow read, write: if true;
+    }
   }
 }
