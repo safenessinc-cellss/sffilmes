@@ -9,18 +9,26 @@ import {
   seedInitialPortfolio, 
   seedInitialConfig,
   authenticateAdmin,
-  logoutAdminFromFirebase
+  logoutAdminFromFirebase,
+  checkAdminStatus,
+  requestAdminAuthorization,
+  isEmailSuperAdmin
 } from '../lib/firestoreService';
+import { auth } from '../firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 interface AppContextType {
   config: AppConfig;
   portfolio: PortfolioItem[];
   isAdmin: boolean;
   loginAdmin: (password: string) => boolean;
+  loginWithGoogle: () => Promise<{ success: boolean; status: 'approved' | 'pending' | 'rejected' | 'none'; email?: string }>;
   logoutAdmin: () => void;
   updateConfig: (newConfig: AppConfig) => void;
   updatePortfolio: (newPortfolio: PortfolioItem[]) => void;
   resetToDefaults: () => void;
+  adminUser: { email: string; displayName: string; photoURL?: string } | null;
+  adminStatus: 'none' | 'pending' | 'approved' | 'rejected' | 'success';
 }
 
 const DEFAULT_HERO = {
@@ -432,6 +440,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return sessionStorage.getItem('st_filmes_admin') === 'true';
   });
 
+  const [adminUser, setAdminUser] = useState<{ email: string; displayName: string; photoURL?: string } | null>(() => {
+    const saved = sessionStorage.getItem('st_filmes_admin_user');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [adminStatus, setAdminStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'success'>(() => {
+    const saved = sessionStorage.getItem('st_filmes_admin_status');
+    return (saved as any) || 'none';
+  });
+
   // 1. Seed database and initialize real-time listeners on mount
   useEffect(() => {
     const initializeFirebaseData = async () => {
@@ -495,26 +517,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [portfolio]);
 
   const loginAdmin = (password: string): boolean => {
+    // Left for backwards compatibility, but Google sign-in is the main channel
     const clean = password.trim().toLowerCase();
     if (
       clean === 'safeness.c.a@gmail' || 
       clean === 'safeness.c.a@gmail.com' || 
-      clean === 'safeness' ||
-      clean.includes('admin') || 
-      clean === 'steffany' || 
-      clean === 'stfilmes'
+      clean === 'safeness'
     ) {
       setIsAdmin(true);
+      setAdminStatus('success');
+      setAdminUser({ email: 'safeness.c.a@gmail.com', displayName: 'Super Admin' });
       sessionStorage.setItem('st_filmes_admin', 'true');
-      authenticateAdmin().catch(err => console.warn("Firebase auth login notice:", err));
+      sessionStorage.setItem('st_filmes_admin_status', 'success');
+      sessionStorage.setItem('st_filmes_admin_user', JSON.stringify({ email: 'safeness.c.a@gmail.com', displayName: 'Super Admin' }));
       return true;
     }
     return false;
   };
 
+  const loginWithGoogle = async (): Promise<{ success: boolean; status: 'approved' | 'pending' | 'rejected' | 'none'; email?: string }> => {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      if (!user || !user.email) {
+        throw new Error("No user email returned from Google Login.");
+      }
+
+      const email = user.email.toLowerCase().trim();
+      const displayName = user.displayName || user.email.split('@')[0];
+      const photoURL = user.photoURL || "";
+
+      // Check authorization status
+      const status = await checkAdminStatus(email);
+
+      const userInfo = { email, displayName, photoURL };
+      setAdminUser(userInfo);
+      sessionStorage.setItem('st_filmes_admin_user', JSON.stringify(userInfo));
+
+      if (status === 'approved') {
+        setIsAdmin(true);
+        sessionStorage.setItem('st_filmes_admin', 'true');
+        setAdminStatus('success');
+        sessionStorage.setItem('st_filmes_admin_status', 'success');
+        return { success: true, status: 'approved', email };
+      } else if (status === 'pending') {
+        setIsAdmin(false);
+        sessionStorage.removeItem('st_filmes_admin');
+        setAdminStatus('pending');
+        sessionStorage.setItem('st_filmes_admin_status', 'pending');
+        return { success: false, status: 'pending', email };
+      } else if (status === 'rejected') {
+        setIsAdmin(false);
+        sessionStorage.removeItem('st_filmes_admin');
+        setAdminStatus('rejected');
+        sessionStorage.setItem('st_filmes_admin_status', 'rejected');
+        return { success: false, status: 'rejected', email };
+      } else {
+        // status is 'none' -> automatically request authorization
+        await requestAdminAuthorization(email, displayName, photoURL);
+        setIsAdmin(false);
+        sessionStorage.removeItem('st_filmes_admin');
+        setAdminStatus('pending');
+        sessionStorage.setItem('st_filmes_admin_status', 'pending');
+        return { success: false, status: 'pending', email };
+      }
+
+    } catch (error: any) {
+      console.error("Error signing in with Google:", error);
+      return { success: false, status: 'none', email: undefined };
+    }
+  };
+
   const logoutAdmin = () => {
     setIsAdmin(false);
+    setAdminUser(null);
+    setAdminStatus('none');
     sessionStorage.removeItem('st_filmes_admin');
+    sessionStorage.removeItem('st_filmes_admin_user');
+    sessionStorage.removeItem('st_filmes_admin_status');
     logoutAdminFromFirebase().catch(err => console.warn("Firebase auth logout notice:", err));
   };
 
@@ -583,10 +667,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       portfolio,
       isAdmin,
       loginAdmin,
+      loginWithGoogle,
       logoutAdmin,
       updateConfig,
       updatePortfolio,
-      resetToDefaults
+      resetToDefaults,
+      adminUser,
+      adminStatus
     }}>
       {children}
     </AppContext.Provider>
