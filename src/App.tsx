@@ -15,6 +15,7 @@ import Promotions from './components/Promotions';
 import AdminDashboard from './components/AdminDashboard';
 import FloatingAssistant from './components/FloatingAssistant';
 import Logo from './components/Logo';
+import SplashScreen from './components/SplashScreen'; // 👈 NUEVO IMPORT
 import { Lock } from 'lucide-react';
 
 function AppContent() {
@@ -31,8 +32,21 @@ function AppContent() {
   // Prefilled Package Contact Message State
   const [preselectedPkg, setPreselectedPkg] = useState<string>('');
 
+  // 👇 NUEVO: Estado para controlar el Splash Screen
+  const [showSplash, setShowSplash] = useState(true);
+
   const { config, portfolio } = useApp();
   const translations = TRANSLATIONS[currentLang];
+
+  // 👇 NUEVO: Efecto para ocultar el Splash Screen
+  useEffect(() => {
+    // Ocultar el splash después de 2.5 segundos
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Intersection Observer to highlight active navigation link automatically during scroll
   useEffect(() => {
@@ -108,172 +122,178 @@ function AppContent() {
   const selectedPhoto = selectedPhotoIndex !== null ? portfolio[selectedPhotoIndex] : null;
 
   return (
-    <div className="min-h-screen bg-[#FCFAF7] text-[#111111] font-sans antialiased selection:bg-[#C9A96E]/30 select-none flex flex-col justify-between">
+    <>
+      {/* 👇 NUEVO: Splash Screen - Se muestra mientras showSplash sea true */}
+      {showSplash && <SplashScreen />}
       
-      {/* Sticky Navigation Header */}
-      <Header
-        currentLang={currentLang}
-        setLang={setCurrentLang}
-        translations={translations}
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-        onOpenAdmin={() => setIsAdminOpen(true)}
-      />
-
-      {/* Main Sections */}
-      <main className="flex-grow">
+      {/* Contenido principal de la aplicación */}
+      <div className="min-h-screen bg-[#FCFAF7] text-[#111111] font-sans antialiased selection:bg-[#C9A96E]/30 select-none flex flex-col justify-between">
         
-        {/* Cover / Hero Cover */}
-        <Hero
+        {/* Sticky Navigation Header */}
+        <Header
           currentLang={currentLang}
+          setLang={setCurrentLang}
           translations={translations}
-          onExplore={() => handleNavigate('works')}
+          activeSection={activeSection}
+          onNavigate={handleNavigate}
+          onOpenAdmin={() => setIsAdminOpen(true)}
         />
 
-        {/* Dynamic Promotions Banner */}
-        <Promotions currentLang={currentLang} />
-
-        {/* Dynamic Asymmetrical Gallery Grid */}
-        <Gallery
-          currentLang={currentLang}
-          translations={translations}
-          onOpenLightbox={handleOpenLightbox}
-        />
-
-        {/* Dynamic Packages and Custom Offerings */}
-        <Packages
-          currentLang={currentLang}
-          onSelectPackage={handleSelectPackage}
-        />
-
-        {/* Editorial Story / About Biography */}
-        <About
-          currentLang={currentLang}
-          translations={translations}
-        />
-
-        {/* Message Booking & Studio Contacts */}
-        <Contact
-          currentLang={currentLang}
-          translations={translations}
-          preselectedPackage={preselectedPkg}
-        />
-
-      </main>
-
-      {/* Full-screen Darkroom Lightbox */}
-      <Lightbox
-        photo={selectedPhoto}
-        isOpen={isLightboxOpen}
-        onClose={handleCloseLightbox}
-        onPrev={handlePrevPhoto}
-        onNext={handleNextPhoto}
-        currentLang={currentLang}
-        translations={translations}
-        currentIndex={selectedPhotoIndex ?? 0}
-        totalPhotos={portfolio.length}
-      />
-
-      {/* Admin Dashboard Editor Modal */}
-      <AdminDashboard
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        currentLang={currentLang}
-      />
-
-      {/* Floating AI Assistant & WhatsApp Button */}
-      <FloatingAssistant currentLang={currentLang} />
-
-      {/* Editorial Footer */}
-      <footer className="bg-[#111111] text-[#CCCCCC] border-t border-[#C9A96E]/20 py-16 px-6 sm:px-10 lg:px-16 select-text">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+        {/* Main Sections */}
+        <main className="flex-grow">
           
-          {/* Column 1: Small Logo & Brand */}
-          <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
-            <Logo size="md" variant="gold" className="transition-transform duration-500 hover:scale-[1.03]" />
-            <p className="font-sans text-[10px] tracking-[0.2em] text-[#888888] uppercase">
-              {currentLang === 'pt' ? 'DIREÇÃO DE FOTO & CENA' : 'DIRECCIÓN DE FOTO Y ESCENA'}
-            </p>
-          </div>
+          {/* Cover / Hero Cover */}
+          <Hero
+            currentLang={currentLang}
+            translations={translations}
+            onExplore={() => handleNavigate('works')}
+          />
 
-          {/* Column 2: Minimalist Navigation Directory */}
-          <div className="md:col-span-4 text-center md:text-left space-y-3">
-            <h4 className="font-mono text-[9px] tracking-[0.25em] text-[#C9A96E] uppercase mb-4">
-              {currentLang === 'pt' ? 'DIRETÓRIO' : 'DIRECTORIO'}
-            </h4>
-            <ul className="space-y-2 text-xs font-sans tracking-widest uppercase">
-              <li>
-                <button
-                  onClick={() => handleNavigate('hero')}
-                  className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
-                >
-                  {currentLang === 'pt' ? 'PÁGINA INICIAL' : 'PORTADA'}
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNavigate('works')}
-                  className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
-                >
-                  {translations.navWorks}
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNavigate('packages')}
-                  className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left text-xs uppercase"
-                >
-                  {currentLang === 'pt' ? 'Planos & Cobertura' : 'Planes y Coberturas'}
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNavigate('about')}
-                  className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
-                >
-                  {translations.navAbout}
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleNavigate('contact')}
-                  className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
-                >
-                  {translations.navContact}
-                </button>
-              </li>
-            </ul>
-          </div>
+          {/* Dynamic Promotions Banner */}
+          <Promotions currentLang={currentLang} />
 
-          {/* Column 3: Fineprint legal catalog details */}
-          <div className="md:col-span-4 text-center md:text-right space-y-4 text-[10px] tracking-wider text-[#888888] font-sans">
-            <p className="font-mono uppercase">
-              {currentLang === 'pt'
-                ? 'DESENVOLVIDO EM CONCEITO ACADÉMICO E EDITORIAL'
-                : 'DESARROLLADO EN CONCEPTO ACADÉMICO Y EDITORIAL'}
-            </p>
-            <p className="leading-relaxed font-light">
-              ST FILMES &copy; {new Date().getFullYear()}. Todos os direitos reservados.
-              <br />
-              {currentLang === 'pt' 
-                ? 'Estética inspirada nos catálogos de arte europeus.' 
-                : 'Estética inspirada en los catálogos de arte europeos.'}
-            </p>
-            <div className="pt-2">
-              <button
-                onClick={() => setIsAdminOpen(true)}
-                className="inline-flex items-center space-x-1 text-[#C9A96E] hover:text-white transition-colors uppercase font-mono text-[9px] tracking-widest bg-stone-900/40 px-3 py-1.5 rounded border border-[#C9A96E]/20"
-              >
-                <Lock className="h-2.5 w-2.5" />
-                <span>Portal Administrativo</span>
-              </button>
+          {/* Dynamic Asymmetrical Gallery Grid */}
+          <Gallery
+            currentLang={currentLang}
+            translations={translations}
+            onOpenLightbox={handleOpenLightbox}
+          />
+
+          {/* Dynamic Packages and Custom Offerings */}
+          <Packages
+            currentLang={currentLang}
+            onSelectPackage={handleSelectPackage}
+          />
+
+          {/* Editorial Story / About Biography */}
+          <About
+            currentLang={currentLang}
+            translations={translations}
+          />
+
+          {/* Message Booking & Studio Contacts */}
+          <Contact
+            currentLang={currentLang}
+            translations={translations}
+            preselectedPackage={preselectedPkg}
+          />
+
+        </main>
+
+        {/* Full-screen Darkroom Lightbox */}
+        <Lightbox
+          photo={selectedPhoto}
+          isOpen={isLightboxOpen}
+          onClose={handleCloseLightbox}
+          onPrev={handlePrevPhoto}
+          onNext={handleNextPhoto}
+          currentLang={currentLang}
+          translations={translations}
+          currentIndex={selectedPhotoIndex ?? 0}
+          totalPhotos={portfolio.length}
+        />
+
+        {/* Admin Dashboard Editor Modal */}
+        <AdminDashboard
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+          currentLang={currentLang}
+        />
+
+        {/* Floating AI Assistant & WhatsApp Button */}
+        <FloatingAssistant currentLang={currentLang} />
+
+        {/* Editorial Footer */}
+        <footer className="bg-[#111111] text-[#CCCCCC] border-t border-[#C9A96E]/20 py-16 px-6 sm:px-10 lg:px-16 select-text">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+            
+            {/* Column 1: Small Logo & Brand */}
+            <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+              <Logo size="md" variant="gold" className="transition-transform duration-500 hover:scale-[1.03]" />
+              <p className="font-sans text-[10px] tracking-[0.2em] text-[#888888] uppercase">
+                {currentLang === 'pt' ? 'DIREÇÃO DE FOTO & CENA' : 'DIRECCIÓN DE FOTO Y ESCENA'}
+              </p>
             </div>
+
+            {/* Column 2: Minimalist Navigation Directory */}
+            <div className="md:col-span-4 text-center md:text-left space-y-3">
+              <h4 className="font-mono text-[9px] tracking-[0.25em] text-[#C9A96E] uppercase mb-4">
+                {currentLang === 'pt' ? 'DIRETÓRIO' : 'DIRECTORIO'}
+              </h4>
+              <ul className="space-y-2 text-xs font-sans tracking-widest uppercase">
+                <li>
+                  <button
+                    onClick={() => handleNavigate('hero')}
+                    className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
+                  >
+                    {currentLang === 'pt' ? 'PÁGINA INICIAL' : 'PORTADA'}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigate('works')}
+                    className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
+                  >
+                    {translations.navWorks}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigate('packages')}
+                    className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left text-xs uppercase"
+                  >
+                    {currentLang === 'pt' ? 'Planos & Cobertura' : 'Planes y Coberturas'}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigate('about')}
+                    className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
+                  >
+                    {translations.navAbout}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigate('contact')}
+                    className="hover:text-[#C9A96E] transition-colors duration-300 cursor-pointer text-left"
+                  >
+                    {translations.navContact}
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Fineprint legal catalog details */}
+            <div className="md:col-span-4 text-center md:text-right space-y-4 text-[10px] tracking-wider text-[#888888] font-sans">
+              <p className="font-mono uppercase">
+                {currentLang === 'pt'
+                  ? 'DESENVOLVIDO EM CONCEITO ACADÉMICO E EDITORIAL'
+                  : 'DESARROLLADO EN CONCEPTO ACADÉMICO Y EDITORIAL'}
+              </p>
+              <p className="leading-relaxed font-light">
+                ST FILMES &copy; {new Date().getFullYear()}. Todos os direitos reservados.
+                <br />
+                {currentLang === 'pt' 
+                  ? 'Estética inspirada nos catálogos de arte europeus.' 
+                  : 'Estética inspirada en los catálogos de arte europeos.'}
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsAdminOpen(true)}
+                  className="inline-flex items-center space-x-1 text-[#C9A96E] hover:text-white transition-colors uppercase font-mono text-[9px] tracking-widest bg-stone-900/40 px-3 py-1.5 rounded border border-[#C9A96E]/20"
+                >
+                  <Lock className="h-2.5 w-2.5" />
+                  <span>Portal Administrativo</span>
+                </button>
+              </div>
+            </div>
+
           </div>
+        </footer>
 
-        </div>
-      </footer>
-
-    </div>
+      </div>
+    </>
   );
 }
 
