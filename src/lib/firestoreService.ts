@@ -8,9 +8,9 @@ import {
   onSnapshot, 
   writeBatch 
 } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
-import { PortfolioItem, AppConfig, SavedBudget } from '../types';
+import { PortfolioItem, AppConfig, SavedBudget, AdminAuthorization } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -269,6 +269,109 @@ export async function deleteBudgetFromFirestore(budgetId: string): Promise<void>
     await deleteDoc(doc(db, BUDGETS_PATH, budgetId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// ADMIN AUTHORIZATION ACTIONS
+const ADMIN_AUTH_PATH = 'admin_authorizations';
+
+export function isEmailSuperAdmin(email: string): boolean {
+  const clean = email.toLowerCase().trim();
+  return clean === 'safeness.c.a@gmail' || clean === 'safeness.c.a@gmail.com';
+}
+
+export async function checkAdminStatus(email: string): Promise<'approved' | 'pending' | 'rejected' | 'none'> {
+  const clean = email.toLowerCase().trim();
+  if (isEmailSuperAdmin(clean)) {
+    return 'approved';
+  }
+  try {
+    const docRef = doc(db, ADMIN_AUTH_PATH, clean);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return (docSnap.data() as AdminAuthorization).status;
+    }
+  } catch (error) {
+    console.warn("Error checking admin status:", error);
+  }
+  return 'none';
+}
+
+export async function requestAdminAuthorization(email: string, displayName: string, photoURL?: string): Promise<void> {
+  const clean = email.toLowerCase().trim();
+  try {
+    const docRef = doc(db, ADMIN_AUTH_PATH, clean);
+    const docSnap = await getDoc(docRef);
+    
+    // Only set if it doesn't exist or was rejected (allows requesting again)
+    if (!docSnap.exists() || (docSnap.data() as AdminAuthorization).status === 'rejected') {
+      const authRecord: AdminAuthorization = {
+        email: clean,
+        displayName,
+        status: isEmailSuperAdmin(clean) ? 'approved' : 'pending',
+        requestedAt: new Date().toISOString(),
+        photoURL: photoURL || ""
+      };
+      await setDoc(docRef, authRecord);
+    }
+  } catch (error) {
+    console.warn("Error requesting admin authorization:", error);
+  }
+}
+
+export function listenToAdminAuthorizations(
+  onUpdate: (items: AdminAuthorization[]) => void,
+  onError: (err: any) => void
+) {
+  return onSnapshot(
+    collection(db, ADMIN_AUTH_PATH),
+    (snapshot) => {
+      const items: AdminAuthorization[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as AdminAuthorization);
+      });
+      // Sort by requestedAt descending
+      items.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
+      onUpdate(items);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, ADMIN_AUTH_PATH);
+      onError(error);
+    }
+  );
+}
+
+export async function updateAdminStatus(email: string, status: 'approved' | 'rejected'): Promise<void> {
+  const clean = email.toLowerCase().trim();
+  try {
+    const docRef = doc(db, ADMIN_AUTH_PATH, clean);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const current = docSnap.data() as AdminAuthorization;
+      await setDoc(docRef, {
+        ...current,
+        status
+      });
+    } else {
+      // Create fresh approved entry if not existing
+      await setDoc(docRef, {
+        email: clean,
+        displayName: clean.split('@')[0],
+        status,
+        requestedAt: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.warn("Error updating admin status:", error);
+  }
+}
+
+export async function deleteAdminAuthorization(email: string): Promise<void> {
+  const clean = email.toLowerCase().trim();
+  try {
+    await deleteDoc(doc(db, ADMIN_AUTH_PATH, clean));
+  } catch (error) {
+    console.warn("Error deleting admin authorization:", error);
   }
 }
 
