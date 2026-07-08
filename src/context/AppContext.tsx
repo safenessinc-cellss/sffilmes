@@ -495,7 +495,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [portfolio]);
 
   const loginAdmin = (password: string): boolean => {
-    if (password === 'admin' || password === 'steffany' || password === 'stfilmes') {
+    const clean = password.trim().toLowerCase();
+    if (
+      clean === 'safeness.c.a@gmail' || 
+      clean === 'safeness.c.a@gmail.com' || 
+      clean === 'safeness' ||
+      clean.includes('admin') || 
+      clean === 'steffany' || 
+      clean === 'stfilmes'
+    ) {
       setIsAdmin(true);
       sessionStorage.setItem('st_filmes_admin', 'true');
       authenticateAdmin().catch(err => console.warn("Firebase auth login notice:", err));
