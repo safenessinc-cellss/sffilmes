@@ -295,30 +295,27 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                 <h3 className="font-serif text-2xl text-[#141414]">Acesso ao Dashboard</h3>
                 <p className="text-xs text-stone-500 font-sans px-4">
                   {currentLang === 'pt' 
-                    ? 'Insira a senha de administrador da ST Filmes para editar a portada, promoções, pacotes e portfólio.'
-                    : 'Ingresa la contraseña de administrador de ST Filmes para editar la portada, promociones, paquetes y portafolio.'}
+                    ? 'Insira seu e-mail de administrador (ex: safeness.c.a@gmail) ou credencial autorizada para acessar o painel de controle.'
+                    : 'Ingrese su correo electrónico de administrador (ej: safeness.c.a@gmail) o credencial autorizada para acceder al panel de control.'}
                 </p>
-                <div className="pt-2">
-                  <code className="bg-stone-100 px-2.5 py-1 rounded text-[10px] font-mono text-stone-600">
-                    {currentLang === 'pt' ? 'Senha padrão: admin' : 'Contraseña por defecto: admin'}
-                  </code>
-                </div>
               </div>
 
               <div className="space-y-2 text-left">
                 <input
-                  type="password"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={`w-full px-4 py-3 bg-[#FDFCFB] border text-center text-sm font-sans text-[#141414] focus:outline-none focus:ring-1 focus:ring-[#C9A96E] ${
                     loginError ? 'border-red-400 focus:ring-red-400' : 'border-[#F0EFEA] focus:border-[#C9A96E]'
                   }`}
-                  placeholder={currentLang === 'pt' ? 'Digite a senha' : 'Digite la contraseña'}
+                  placeholder={currentLang === 'pt' ? 'Digite seu e-mail ou identificador' : 'Ingrese su correo o identificador'}
                   autoFocus
                 />
                 {loginError && (
                   <p className="text-[11px] text-red-500 font-sans text-center">
-                    {currentLang === 'pt' ? 'Senha incorreta. Tente "admin" ou "stfilmes".' : 'Contraseña incorrecta. Intente "admin" o "stfilmes".'}
+                    {currentLang === 'pt' 
+                      ? 'E-mail ou credencial incorreta ou não autorizada.' 
+                      : 'Correo o credencial incorrecta o no autorizada.'}
                   </p>
                 )}
               </div>
