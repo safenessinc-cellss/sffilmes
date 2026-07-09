@@ -3,6 +3,42 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight, MapPin, Calendar, Film, Play } from 'lucide-react';
 import { PortfolioItem, Language, Translation } from '../types';
 
+function getEmbedUrl(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+
+  // If already an embed URL, keep it
+  if (trimmed.includes('youtube.com/embed/') || trimmed.includes('player.vimeo.com/video/')) {
+    return trimmed;
+  }
+
+  // YouTube Shorts Support
+  // e.g., https://www.youtube.com/shorts/g09U7p2uicY
+  if (trimmed.includes('/shorts/')) {
+    const parts = trimmed.split('/shorts/');
+    if (parts.length > 1) {
+      const id = parts[1].split(/[?#]/)[0];
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+    }
+  }
+
+  // General YouTube regex
+  const ytRegex = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const ytMatch = trimmed.match(ytRegex);
+  if (ytMatch && ytMatch[2].length === 11) {
+    return `https://www.youtube.com/embed/${ytMatch[2]}?autoplay=1&rel=0`;
+  }
+
+  // Vimeo Support
+  const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+  const vimeoMatch = trimmed.match(vimeoRegex);
+  if (vimeoMatch && vimeoMatch[1]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+  }
+
+  return trimmed;
+}
+
 interface LightboxProps {
   photo: PortfolioItem | null;
   isOpen: boolean;
@@ -113,7 +149,7 @@ export default function Lightbox({
               {photo.videoUrl ? (
                 <div className="w-full h-full min-h-[350px] sm:min-h-[450px] md:min-h-[500px] aspect-video border border-white/10 shadow-2xl bg-black rounded overflow-hidden">
                   <iframe
-                    src={photo.videoUrl}
+                    src={getEmbedUrl(photo.videoUrl)}
                     title={photo.title[currentLang]}
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
