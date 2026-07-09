@@ -6,17 +6,9 @@ import {
   setDoc, 
   deleteDoc, 
   onSnapshot, 
-  writeBatch,
-  Timestamp
+  writeBatch 
 } from 'firebase/firestore';
-import { 
-  signInAnonymously, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut,
-  onAuthStateChanged,
-  User
-} from 'firebase/auth';
+import { signInAnonymously, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { PortfolioItem, AppConfig, SavedBudget, AdminAuthorization } from '../types';
 
@@ -46,11 +38,6 @@ export interface FirestoreErrorInfo {
   }
 }
 
-// Estado de autenticação
-let authReady = false;
-let authPromise: Promise<void> | null = null;
-const authErrorListeners = new Set<(err: string | null) => void>();
-
 // Global Firebase error translator
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errMsg = error instanceof Error ? error.message : String(error);
@@ -71,17 +58,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   
-  if (errMsg.includes("offline") || errMsg.includes("unavailable")) {
-    console.warn('⚠️ Firestore offline: ', errMsg);
-  } else if (errMsg.includes("configuration-not-found")) {
-    console.warn('⚠️ Firebase Auth não configurado. Ative o provedor "Anônimo" no Firebase Console.');
-    setAuthError('Anonymous auth not enabled. Please enable it in Firebase Console.');
+  if (errMsg.includes("offline") || errMsg.includes("unavailable") || errMsg.includes("configuration-not-found")) {
+    console.warn('Firestore offline/config warning (non-blocking): ', errMsg);
   } else {
-    console.warn('⚠️ Firestore Operation Warn:', errMsg);
+    console.warn('Firestore Operation Warn: ', JSON.stringify(errInfo));
   }
 }
 
 export let firebaseAuthError: string | null = null;
+const authErrorListeners = new Set<(err: string | null) => void>();
 
 export function subscribeToAuthError(listener: (err: string | null) => void) {
   authErrorListeners.add(listener);
@@ -96,87 +81,21 @@ function setAuthError(err: string | null) {
   authErrorListeners.forEach(l => l(err));
 }
 
-// --- NOVA VERSÃO DA AUTENTICAÇÃO ---
-
-// Verifica se o usuário está autenticado, se não, tenta autenticar
-export async function ensureAuthenticated(): Promise<boolean> {
-  try {
-    // Se já tem usuário, está autenticado
-    if (auth.currentUser) {
-      return true;
-    }
-
-    // Tenta autenticar anonimamente
-    try {
-      await signInAnonymously(auth);
-      console.log('✅ Autenticado anonimamente com sucesso');
-      setAuthError(null);
-      return true;
-    } catch (anonError: any) {
-      // Se o erro for de configuração, avisa o usuário
-      if (anonError?.code === 'auth/operation-not-allowed') {
-        const msg = '❌ Autenticação anônima não está habilitada. Habilite no Firebase Console > Authentication > Sign-in methods > Anonymous.';
-        console.error(msg);
-        setAuthError(msg);
-        return false;
-      }
-      throw anonError;
-    }
-  } catch (error: any) {
-    console.warn('⚠️ Erro na autenticação:', error?.message || String(error));
-    setAuthError(error?.message || String(error));
-    return false;
-  }
-}
-
-// Versão antiga mantida para compatibilidade (deprecated)
+// Authenticate Admin to Firebase Auth
 export async function authenticateAdmin(): Promise<void> {
-  const success = await ensureAuthenticated();
-  if (!success) {
-    throw new Error('Falha na autenticação. Verifique o console para detalhes.');
-  }
+  // No-op to avoid anonymous login error as Google Login is used exclusively.
+  setAuthError(null);
 }
 
-// Logout
+// De-authenticate Admin
 export async function logoutAdminFromFirebase(): Promise<void> {
   try {
-    await signOut(auth);
-    console.log("✅ Logout realizado com sucesso");
+    await auth.signOut();
+    console.log("Logged out from Firebase Auth");
   } catch (error) {
-    console.warn("⚠️ Erro ao fazer logout:", error);
+    console.warn("Firebase logout notice:", error);
   }
 }
-
-// Google Sign-In (para super admin)
-export async function signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    
-    console.log('✅ Login Google realizado:', user.email);
-    
-    // Verifica se é super admin
-    if (user.email && isEmailSuperAdmin(user.email)) {
-      return { success: true };
-    }
-    
-    // Verifica se está autorizado
-    const status = await checkAdminStatus(user.email || '');
-    if (status === 'approved') {
-      return { success: true };
-    } else if (status === 'pending') {
-      return { success: false, error: 'pending' };
-    } else {
-      return { success: false, error: 'not_authorized' };
-    }
-  } catch (error: any) {
-    console.error('❌ Erro no login Google:', error);
-    return { success: false, error: error?.message || String(error) };
-  }
-}
-
-// --- FIM DA SEÇÃO DE AUTENTICAÇÃO ---
 
 // PORTFOLIO ACTIONS
 const PORTFOLIO_PATH = 'portfolio';
@@ -204,55 +123,48 @@ export function listenToPortfolio(
 export async function savePortfolioItemToFirestore(item: PortfolioItem): Promise<void> {
   const path = `${PORTFOLIO_PATH}/${item.id}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) throw new Error('Não autenticado');
+    await authenticateAdmin();
     await setDoc(doc(db, PORTFOLIO_PATH, item.id), item);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
   }
 }
 
 export async function deletePortfolioItemFromFirestore(itemId: string): Promise<void> {
   const path = `${PORTFOLIO_PATH}/${itemId}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) throw new Error('Não autenticado');
+    await authenticateAdmin();
     await deleteDoc(doc(db, PORTFOLIO_PATH, itemId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
-    throw error;
   }
 }
 
 // Seeding standard initial entries if portfolio is empty
 export async function seedInitialPortfolio(defaultItems: PortfolioItem[]): Promise<void> {
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) {
-      console.log("⚠️ Não autenticado, pulando seed do portfólio");
-      return;
-    }
+    await authenticateAdmin();
     const querySnapshot = await getDocs(collection(db, PORTFOLIO_PATH));
     if (querySnapshot.empty) {
-      console.log("📦 Portfolio vazio. Semeando itens padrão...");
+      console.log("Portfolio collection is empty on Firestore. Seeding default items...");
       const batch = writeBatch(db);
       defaultItems.forEach((item) => {
         const itemRef = doc(db, PORTFOLIO_PATH, item.id);
         batch.set(itemRef, item);
       });
       await batch.commit();
-      console.log("✅ Seed do portfólio concluído!");
+      console.log("Seeding portfolio completed successfully!");
     }
   } catch (error: any) {
     const errStr = error?.message || String(error);
     if (errStr.includes("offline") || errStr.includes("unavailable")) {
-      console.log("⚠️ Firestore offline. Usando dados locais padrão.");
+      console.log("Firestore client is offline. Skipping portfolio database seeding, using local defaults.");
     } else {
-      console.warn("⚠️ Erro durante seed do portfólio:", errStr);
+      console.warn("Notice: Error during initial portfolio seeding:", errStr);
     }
   }
 }
+
 
 // CONFIG ACTIONS
 const CONFIG_PATH = 'config';
@@ -279,36 +191,30 @@ export function listenToConfig(
 export async function saveConfigToFirestore(config: AppConfig): Promise<void> {
   const path = `${CONFIG_PATH}/${CONFIG_DOC_ID}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) throw new Error('Não autenticado');
+    await authenticateAdmin();
     await setDoc(doc(db, CONFIG_PATH, CONFIG_DOC_ID), config);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
   }
 }
 
 export async function seedInitialConfig(defaultConfig: AppConfig): Promise<void> {
   const path = `${CONFIG_PATH}/${CONFIG_DOC_ID}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) {
-      console.log("⚠️ Não autenticado, pulando seed da configuração");
-      return;
-    }
+    await authenticateAdmin();
     const docRef = doc(db, CONFIG_PATH, CONFIG_DOC_ID);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
-      console.log("📦 Config vazia. Semeando configurações padrão...");
+      console.log("Config document is empty on Firestore. Seeding default settings...");
       await setDoc(docRef, defaultConfig);
-      console.log("✅ Seed da configuração concluído!");
+      console.log("Seeding config settings completed successfully!");
     }
   } catch (error: any) {
     const errStr = error?.message || String(error);
     if (errStr.includes("offline") || errStr.includes("unavailable")) {
-      console.log("⚠️ Firestore offline. Usando configurações locais padrão.");
+      console.log("Firestore client is offline. Skipping app config database seeding, using local defaults.");
     } else {
-      console.warn("⚠️ Erro durante seed da configuração:", errStr);
+      console.warn("Notice: Error during initial config seeding:", errStr);
     }
   }
 }
@@ -327,6 +233,7 @@ export function listenToBudgets(
       snapshot.forEach((doc) => {
         budgets.push({ id: doc.id, ...doc.data() } as SavedBudget);
       });
+      // Sort by generation date descending
       budgets.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
       onUpdate(budgets);
     },
@@ -340,24 +247,20 @@ export function listenToBudgets(
 export async function saveBudgetToFirestore(budget: SavedBudget): Promise<void> {
   const path = `${BUDGETS_PATH}/${budget.id}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) throw new Error('Não autenticado');
+    await authenticateAdmin();
     await setDoc(doc(db, BUDGETS_PATH, budget.id), budget);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
   }
 }
 
 export async function deleteBudgetFromFirestore(budgetId: string): Promise<void> {
   const path = `${BUDGETS_PATH}/${budgetId}`;
   try {
-    const authed = await ensureAuthenticated();
-    if (!authed) throw new Error('Não autenticado');
+    await authenticateAdmin();
     await deleteDoc(doc(db, BUDGETS_PATH, budgetId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
-    throw error;
   }
 }
 
@@ -381,7 +284,7 @@ export async function checkAdminStatus(email: string): Promise<'approved' | 'pen
       return (docSnap.data() as AdminAuthorization).status;
     }
   } catch (error) {
-    console.warn("⚠️ Erro ao verificar status admin:", error);
+    console.warn("Error checking admin status:", error);
   }
   return 'none';
 }
@@ -392,6 +295,7 @@ export async function requestAdminAuthorization(email: string, displayName: stri
     const docRef = doc(db, ADMIN_AUTH_PATH, clean);
     const docSnap = await getDoc(docRef);
     
+    // Only set if it doesn't exist or was rejected (allows requesting again)
     if (!docSnap.exists() || (docSnap.data() as AdminAuthorization).status === 'rejected') {
       const authRecord: AdminAuthorization = {
         email: clean,
@@ -401,10 +305,9 @@ export async function requestAdminAuthorization(email: string, displayName: stri
         photoURL: photoURL || ""
       };
       await setDoc(docRef, authRecord);
-      console.log(`📧 Solicitação de admin enviada para: ${clean}`);
     }
   } catch (error) {
-    console.warn("⚠️ Erro ao solicitar autorização admin:", error);
+    console.warn("Error requesting admin authorization:", error);
   }
 }
 
@@ -419,6 +322,7 @@ export function listenToAdminAuthorizations(
       snapshot.forEach((doc) => {
         items.push(doc.data() as AdminAuthorization);
       });
+      // Sort by requestedAt descending
       items.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
       onUpdate(items);
     },
@@ -440,18 +344,17 @@ export async function updateAdminStatus(email: string, status: 'approved' | 'rej
         ...current,
         status
       });
-      console.log(`✅ Status admin atualizado para ${clean}: ${status}`);
     } else {
+      // Create fresh approved entry if not existing
       await setDoc(docRef, {
         email: clean,
         displayName: clean.split('@')[0],
         status,
         requestedAt: new Date().toISOString()
       });
-      console.log(`✅ Registro admin criado para ${clean}: ${status}`);
     }
   } catch (error) {
-    console.warn("⚠️ Erro ao atualizar status admin:", error);
+    console.warn("Error updating admin status:", error);
   }
 }
 
@@ -459,8 +362,8 @@ export async function deleteAdminAuthorization(email: string): Promise<void> {
   const clean = email.toLowerCase().trim();
   try {
     await deleteDoc(doc(db, ADMIN_AUTH_PATH, clean));
-    console.log(`🗑️ Autorização admin removida: ${clean}`);
   } catch (error) {
-    console.warn("⚠️ Erro ao deletar autorização admin:", error);
+    console.warn("Error deleting admin authorization:", error);
   }
 }
+
