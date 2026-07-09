@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Phone } from 'lucide-react';
 import { Language, Translation } from '../types';
 import { useApp } from '../context/AppContext';
 import Logo from './Logo';
@@ -87,6 +87,24 @@ export default function Hero({ currentLang, translations, onExplore }: HeroProps
           className="h-[1px] bg-[#C9A96E] mt-8"
         />
 
+        {/* Elegant Phone Number Pill */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, delay: 1.3, ease: 'easeOut' }}
+          className="mt-6 flex justify-center"
+        >
+          <a
+            href="https://wa.me/5551981323388"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-center space-x-2.5 px-6 py-2.5 bg-[#141414] hover:bg-[#C9A96E] text-[#C9A96E] hover:text-white rounded-full font-mono text-xs sm:text-sm tracking-[0.15em] font-semibold transition-all duration-300 shadow-md border border-[#C9A96E]/20 hover:scale-[1.03]"
+          >
+            <Phone className="h-3.5 w-3.5 text-[#C9A96E] group-hover:text-white animate-pulse" />
+            <span>+55 (51) 98132-3388</span>
+          </a>
+        </motion.div>
+
         {/* Coverage Cities Banner */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -115,6 +133,9 @@ export default function Hero({ currentLang, translations, onExplore }: HeroProps
       {/* Magazine pagination stamp at bottom left / right */}
       <div className="absolute bottom-12 left-12 font-mono text-[9px] tracking-[0.2em] uppercase text-[#888888] hidden lg:block">
         ST FILMES &copy; {new Date().getFullYear()}
+      </div>
+      <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 font-mono text-[9px] tracking-[0.22em] uppercase text-[#888888] hover:text-[#C9A96E] transition-colors duration-300 hidden lg:block">
+        <a href="tel:5551981323388" className="hover:underline">TEL: (51) 98132-3388</a>
       </div>
       <div className="absolute bottom-12 right-12 font-mono text-[9px] tracking-[0.2em] uppercase text-[#888888] hidden lg:block">
         {currentLang === 'pt' ? 'PORTO ALEGRE & SERRA GAÚCHA' : 'PORTO ALEGRE Y SERRA GAÚCHA'}

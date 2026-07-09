@@ -121,8 +121,8 @@ export default function Contact({ currentLang, translations, preselectedPackage 
                   <h4 className="font-mono text-[10px] tracking-wider text-[#888888] uppercase">
                     Telefone / Teléfono
                   </h4>
-                  <a href="tel:+351210000000" className="font-serif text-sm text-[#141414] hover:text-[#C9A96E] transition-colors duration-300">
-                    +351 210 000 000
+                  <a href="tel:5551981323388" className="font-serif text-sm text-[#141414] hover:text-[#C9A96E] transition-colors duration-300">
+                    +55 (51) 98132-3388
                   </a>
                 </div>
               </div>

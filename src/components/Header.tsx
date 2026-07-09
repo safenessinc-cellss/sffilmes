@@ -99,20 +99,22 @@ export default function Header({
             <div className="flex items-center border-l border-[#F0EFEA] pl-8 space-x-4 text-xs font-sans tracking-[0.1em]">
               <button
                 onClick={() => setLang('pt')}
-                className={`transition-colors duration-300 font-medium ${
-                  currentLang === 'pt' ? 'text-[#C9A96E] font-semibold' : 'text-[#888888] hover:text-[#141414]'
+                className={`transition-all duration-300 text-base filter hover:grayscale-0 ${
+                  currentLang === 'pt' ? 'scale-110 drop-shadow-xs grayscale-0' : 'grayscale opacity-60 hover:opacity-100 hover:scale-105'
                 }`}
+                title="Português"
               >
-                PT
+                🇧🇷
               </button>
               <span className="text-[#C9A96E]/30">|</span>
               <button
                 onClick={() => setLang('es')}
-                className={`transition-colors duration-300 font-medium ${
-                  currentLang === 'es' ? 'text-[#C9A96E] font-semibold' : 'text-[#888888] hover:text-[#141414]'
+                className={`transition-all duration-300 text-base filter hover:grayscale-0 ${
+                  currentLang === 'es' ? 'scale-110 drop-shadow-xs grayscale-0' : 'grayscale opacity-60 hover:opacity-100 hover:scale-105'
                 }`}
+                title="Español"
               >
-                ES
+                🇪🇸
               </button>
 
               {/* Admin Button */}
@@ -131,11 +133,11 @@ export default function Header({
             {/* Quick Language Toggle */}
             <button
               onClick={() => setLang(currentLang === 'pt' ? 'es' : 'pt')}
-              className="flex items-center space-x-1 text-xs font-medium tracking-wider text-[#141414] hover:text-[#C9A96E] bg-white/50 px-2 py-1 rounded border border-[#F0EFEA]"
+              className="flex items-center space-x-1.5 text-xs font-semibold bg-white/60 px-2.5 py-1.5 rounded border border-[#F0EFEA] hover:border-[#C9A96E]/40 transition-colors"
               title="Mudar idioma / Cambiar idioma"
             >
-              <Globe className="h-3 w-3 text-[#C9A96E]" />
-              <span>{currentLang.toUpperCase()}</span>
+              <span>{currentLang === 'pt' ? '🇧🇷' : '🇪🇸'}</span>
+              <span className="text-[10px] tracking-wider text-stone-600">{currentLang === 'pt' ? 'PT' : 'ES'}</span>
             </button>
 
             {/* Hamburger Button */}
@@ -192,32 +194,34 @@ export default function Header({
                 transition={{ delay: 0.4 }}
                 className="mt-16 flex flex-col items-center space-y-6"
               >
-                <div className="flex justify-center items-center space-x-6 text-sm tracking-widest uppercase font-sans">
+                <div className="flex justify-center items-center space-x-6 text-sm tracking-wider font-sans">
                   <button
                     onClick={() => {
                       setLang('pt');
                       setIsOpen(false);
                     }}
-                    className={`py-1 px-3 ${
+                    className={`py-1 px-3 flex items-center space-x-2.5 transition-all ${
                       currentLang === 'pt'
-                        ? 'border-b border-[#C9A96E] text-[#C9A96E]'
-                        : 'text-[#888888]'
+                        ? 'border-b border-[#C9A96E] text-[#C9A96E] font-medium'
+                        : 'text-[#888888] hover:text-[#111111]'
                     }`}
                   >
-                    Português
+                    <span>🇧🇷</span>
+                    <span>Português</span>
                   </button>
                   <button
                     onClick={() => {
                       setLang('es');
                       setIsOpen(false);
                     }}
-                    className={`py-1 px-3 ${
+                    className={`py-1 px-3 flex items-center space-x-2.5 transition-all ${
                       currentLang === 'es'
-                        ? 'border-b border-[#C9A96E] text-[#C9A96E]'
-                        : 'text-[#888888]'
+                        ? 'border-b border-[#C9A96E] text-[#C9A96E] font-medium'
+                        : 'text-[#888888] hover:text-[#111111]'
                     }`}
                   >
-                    Español
+                    <span>🇪🇸</span>
+                    <span>Español</span>
                   </button>
                 </div>
 
