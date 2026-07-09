@@ -129,16 +129,29 @@ export default function Header({
           </nav>
 
           {/* Mobile Actions: Language + Burger */}
-          <div className="flex items-center space-x-4 md:hidden">
-            {/* Quick Language Toggle */}
-            <button
-              onClick={() => setLang(currentLang === 'pt' ? 'es' : 'pt')}
-              className="flex items-center space-x-1.5 text-xs font-semibold bg-white/60 px-2.5 py-1.5 rounded border border-[#F0EFEA] hover:border-[#C9A96E]/40 transition-colors"
-              title="Mudar idioma / Cambiar idioma"
-            >
-              <span>{currentLang === 'pt' ? '🇧🇷' : '🇪🇸'}</span>
-              <span className="text-[10px] tracking-wider text-stone-600">{currentLang === 'pt' ? 'PT' : 'ES'}</span>
-            </button>
+          <div className="flex items-center space-x-3.5 md:hidden">
+            {/* Quick Language Selector with Flags */}
+            <div className="flex items-center space-x-2 bg-white/60 px-2 py-1.5 rounded-full border border-[#F0EFEA]">
+              <button
+                onClick={() => setLang('pt')}
+                className={`transition-all duration-300 text-base filter ${
+                  currentLang === 'pt' ? 'scale-110 grayscale-0 opacity-100' : 'grayscale opacity-50 scale-95 hover:opacity-90'
+                }`}
+                title="Português"
+              >
+                🇧🇷
+              </button>
+              <span className="text-stone-300 text-[10px] select-none">|</span>
+              <button
+                onClick={() => setLang('es')}
+                className={`transition-all duration-300 text-base filter ${
+                  currentLang === 'es' ? 'scale-110 grayscale-0 opacity-100' : 'grayscale opacity-50 scale-95 hover:opacity-90'
+                }`}
+                title="Español"
+              >
+                🇪🇸
+              </button>
+            </div>
 
             {/* Hamburger Button */}
             <button
