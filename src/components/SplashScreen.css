@@ -1,206 +1,216 @@
-/* Contenedor principal - ocupa toda la pantalla */
-.splash-container {
+/* SplashScreen.css */
+
+.splash-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
-  background: #0a0a0a;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: fadeOut 0.8s ease-in-out 2.5s forwards;
-}
-
-@keyframes fadeOut {
-  to {
-    opacity: 0;
-    visibility: hidden;
-  }
-}
-
-/* Contenedor de la cámara con animación flotante */
-.camera-loader {
+  height: 100vh;
+  background-color: #0a0a0a;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px;
-  animation: float 2s ease-in-out infinite;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-/* ===== CUERPO DE LA CÁMARA ===== */
-.camera-body {
-  position: relative;
-  width: 120px;
-  height: 90px;
-  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
-  border-radius: 12px;
-  border: 2px solid #333;
-  box-shadow: 
-    0 10px 40px rgba(0,0,0,0.8),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-/* ===== LENTE PRINCIPAL ===== */
-.lens {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50px;
-  height: 50px;
-  background: radial-gradient(circle, #1a1a1a 30%, #000 70%);
-  border-radius: 50%;
-  border: 3px solid #444;
-  box-shadow: 
-    inset 0 0 20px rgba(0,0,0,0.8),
-    0 0 30px rgba(100,100,255,0.1);
-  animation: pulseLens 1.5s ease-in-out infinite;
-}
-
-@keyframes pulseLens {
-  0%, 100% { 
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 30px rgba(100,100,255,0.1);
-  }
-  50% { 
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 60px rgba(100,100,255,0.3);
-  }
-}
-
-.lens-inner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 30px;
-  height: 30px;
-  background: radial-gradient(circle, #2a2a2a 20%, #0a0a0a 80%);
-  border-radius: 50%;
-  border: 2px solid #555;
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
-}
-
-/* Luz roja de la lente (parpadea) */
-.lens-flash {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 12px;
-  height: 12px;
-  background: radial-gradient(circle, #ff6b6b, #cc0000);
-  border-radius: 50%;
-  border: 1px solid #ff6b6b;
-  box-shadow: 0 0 20px rgba(255,0,0,0.3);
-  animation: blinkFlash 2s ease-in-out infinite;
-}
-
-@keyframes blinkFlash {
-  0%, 90%, 100% { opacity: 1; }
-  95% { opacity: 0; }
-}
-
-/* ===== VISOR (VIEWFINDER) ===== */
-.viewfinder {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 20px;
-  height: 15px;
-  background: #111;
-  border-radius: 3px;
-  border: 1px solid #444;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.9);
-}
-
-/* ===== FLASH SUPERIOR ===== */
-.flash {
-  position: absolute;
-  top: -8px;
-  right: 30px;
-  width: 20px;
-  height: 8px;
-  background: #333;
-  border-radius: 3px 3px 0 0;
-  border: 1px solid #444;
-  border-bottom: none;
-}
-
-.flash-light {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to bottom, #666, #333);
-  border-radius: 3px 3px 0 0;
-  animation: flashPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes flashPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; background: #fff; }
-}
-
-/* ===== EFECTO DE DISPARO (SHUTTER) ===== */
-.shutter-effect {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.splash-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
-.shutter-flash {
+/* Flash effect container */
+.splash-flash {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(circle, rgba(255,255,255,0.8), transparent 70%);
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
   opacity: 0;
-  animation: shutterClick 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10000;
+  animation: camera-flash 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-@keyframes shutterClick {
-  0%, 85%, 100% { 
+/* Gold Camera Icon */
+.camera-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.camera-body {
+  position: absolute;
+  width: 140px;
+  height: 96px;
+  border: 4px solid #C9A96E;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.camera-top {
+  position: absolute;
+  top: 18px;
+  width: 50px;
+  height: 16px;
+  background-color: #0a0a0a;
+  border-top: 4px solid #C9A96E;
+  border-left: 4px solid #C9A96E;
+  border-right: 4px solid #C9A96E;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.camera-lens-outer {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 4px solid #C9A96E;
+  background-color: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lens-pulse 2s infinite ease-in-out;
+}
+
+.camera-lens-inner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #C9A96E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  animation: shutter-click 2.5s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+.camera-lens-reflection {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.camera-flash-light {
+  position: absolute;
+  top: 44px;
+  right: 24px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #C9A96E;
+  animation: indicator-blink 1s infinite steps(2, start);
+}
+
+/* Text Animations */
+.splash-brand {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #C9A96E;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 16px;
+  opacity: 0;
+  transform: translateY(15px);
+  animation: slide-up-fade 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+  text-shadow: 0 4px 12px rgba(201, 169, 110, 0.15);
+}
+
+.splash-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: #a3a3a3;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: slide-up-fade 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.6s forwards;
+}
+
+/* Animations Definitions */
+
+@keyframes camera-flash {
+  0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
   }
-  90% { 
+  64% {
+    opacity: 0;
+  }
+  65% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.5);
   }
-  95% { 
+  68% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(2);
   }
 }
 
-/* ===== TEXTOS ===== */
-.splash-text {
-  color: #fff;
-  font-size: 28px;
-  font-weight: 300;
-  letter-spacing: 8px;
-  margin: 0;
-  text-shadow: 0 0 30px rgba(255,255,255,0.1);
-  animation: textPulse 2s ease-in-out infinite;
+@keyframes lens-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(201, 169, 110, 0);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 20px 2px rgba(201, 169, 110, 0.25);
+  }
 }
 
-.splash-subtext {
-  color: rgba(255,255,255,0.5);
-  font-size: 14px;
-  letter-spacing: 4px;
-  margin: -15px 0 0 0;
-  animation: textPulse 2s ease-in-out infinite 0.5s;
+@keyframes shutter-click {
+  0% {
+    transform: scale(1);
+  }
+  63% {
+    transform: scale(1);
+  }
+  /* Fast shutter contraction and expansion */
+  65% {
+    transform: scale(0.1);
+  }
+  68% {
+    transform: scale(1.2);
+  }
+  75% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-@keyframes textPulse {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+@keyframes indicator-blink {
+  0%, 100% {
+    opacity: 0.3;
+    background-color: #C9A96E;
+  }
+  50% {
+    opacity: 1;
+    background-color: #ffffff;
+    box-shadow: 0 0 8px 1px #C9A96E;
+  }
+}
+
+@keyframes slide-up-fade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

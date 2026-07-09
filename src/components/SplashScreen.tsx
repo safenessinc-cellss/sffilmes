@@ -1,46 +1,47 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './SplashScreen.css';
 
-const SplashScreen = () => {
+export default function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
-    // Ocultar después de 2.5 segundos
-    const timer = setTimeout(() => {
-      setIsVisible(false);
+    // Start fading out after 2.5 seconds
+    const fadeTimer = setTimeout(() => {
+      setIsFading(true);
     }, 2500);
 
-    return () => clearTimeout(timer);
+    // Completely unmount after transition (2.5s + 0.8s = 3.3s)
+    const removeTimer = setTimeout(() => {
+      setIsVisible(false);
+    }, 3300);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
   }, []);
 
   if (!isVisible) return null;
 
   return (
-    <div className="splash-container">
-      <div className="camera-loader">
-        {/* Cuerpo de la cámara */}
-        <div className="camera-body">
-          <div className="lens">
-            <div className="lens-inner"></div>
-            <div className="lens-flash"></div>
-          </div>
-          <div className="viewfinder"></div>
-          <div className="flash">
-            <div className="flash-light"></div>
+    <div className={`splash-overlay ${isFading ? 'fade-out' : ''}`} id="st-splash-screen">
+      {/* Simulation of a real-world camera flash element */}
+      <div className="splash-flash" />
+      
+      <div className="camera-wrapper">
+        <div className="camera-top" />
+        <div className="camera-body" />
+        <div className="camera-lens-outer">
+          <div className="camera-lens-inner">
+            <div className="camera-lens-reflection" />
           </div>
         </div>
-        
-        {/* Efecto de disparo */}
-        <div className="shutter-effect">
-          <div className="shutter-flash"></div>
-        </div>
-        
-        {/* Texto */}
-        <p className="splash-text">ST FILMES</p>
-        <p className="splash-subtext">Capturando momentos...</p>
+        <div className="camera-flash-light" />
       </div>
+      
+      <h1 className="splash-brand">ST FILMES</h1>
+      <p className="splash-subtitle">Capturando momentos...</p>
     </div>
   );
-};
-
-export default SplashScreen;
+}

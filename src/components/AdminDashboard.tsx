@@ -486,11 +486,7 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-stone-100">
-                  <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">
-                
-                  </span>
-                </div>
+
               </div>
             )}
           </div>
