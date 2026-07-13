@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, Phone } from 'lucide-react';
 import { Language, Translation } from '../types';
 import { useApp } from '../context/AppContext';
@@ -15,19 +15,55 @@ export default function Hero({ currentLang, translations, onExplore }: HeroProps
   const { config } = useApp();
   const { hero } = config;
 
+  // Compile cover images list, prioritizing carouselImages list, otherwise fallback to imageUrl
+  const images = useMemo(() => {
+    let list: string[] = [];
+    if (hero.carouselImages && hero.carouselImages.length > 0) {
+      list = hero.carouselImages;
+    } else if (hero.imageUrl) {
+      list = [hero.imageUrl];
+    }
+    return list.filter((url): url is string => typeof url === 'string' && url.trim() !== '');
+  }, [hero.imageUrl, hero.carouselImages]);
+
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImgIndex((prev) => (prev + 1) % images.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [images]);
+
+  const contactInfo = config.contact || {
+    email: 'info@stfilmes.com',
+    phoneNumber: '+55 (51) 98132-3388',
+  };
+  const cleanPhone = contactInfo.phoneNumber.replace(/[^0-9]/g, '');
+  const waPhone = config.whatsapp?.phoneNumber || cleanPhone;
+
   return (
     <section
       id="hero"
       className="relative min-h-screen flex flex-col justify-center items-center bg-[#FDFCFB] px-6 text-center select-none overflow-hidden"
     >
-      {/* Background Image Wrapper if customized */}
-      {hero.imageUrl && (
-        <div className="absolute inset-0 z-0 opacity-15 transition-opacity duration-1000">
-          <img 
-            src={hero.imageUrl} 
-            alt="ST Filmes Cover Background" 
-            className="w-full h-full object-cover filter grayscale scale-105"
-          />
+      {/* Dynamic Background Slideshow Wrapper */}
+      {images.length > 0 && images[currentImgIndex] && (
+        <div className="absolute inset-0 z-0 opacity-15">
+          <AnimatePresence mode="wait">
+            <motion.img 
+              key={currentImgIndex}
+              src={images[currentImgIndex] || null} 
+              alt="ST Filmes Cover Background" 
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1.02 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5, ease: 'easeInOut' }}
+              className="w-full h-full object-cover filter grayscale"
+              referrerPolicy="no-referrer"
+            />
+          </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCFB] via-transparent to-[#FDFCFB]" />
         </div>
       )}
@@ -95,13 +131,13 @@ export default function Hero({ currentLang, translations, onExplore }: HeroProps
           className="mt-6 flex justify-center"
         >
           <a
-            href="https://wa.me/5551981323388"
+            href={`https://wa.me/${waPhone}`}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex items-center space-x-2.5 px-6 py-2.5 bg-[#141414] hover:bg-[#C9A96E] text-[#C9A96E] hover:text-white rounded-full font-mono text-xs sm:text-sm tracking-[0.15em] font-semibold transition-all duration-300 shadow-md border border-[#C9A96E]/20 hover:scale-[1.03]"
           >
             <Phone className="h-3.5 w-3.5 text-[#C9A96E] group-hover:text-white animate-pulse" />
-            <span>+55 (51) 98132-3388</span>
+            <span>{contactInfo.phoneNumber}</span>
           </a>
         </motion.div>
 
@@ -135,7 +171,7 @@ export default function Hero({ currentLang, translations, onExplore }: HeroProps
         ST FILMES &copy; {new Date().getFullYear()}
       </div>
       <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 font-mono text-[9px] tracking-[0.22em] uppercase text-[#888888] hover:text-[#C9A96E] transition-colors duration-300 hidden lg:block">
-        <a href="tel:5551981323388" className="hover:underline">TEL: (51) 98132-3388</a>
+        <a href={`tel:${cleanPhone}`} className="hover:underline">TEL: {contactInfo.phoneNumber}</a>
       </div>
       <div className="absolute bottom-12 right-12 font-mono text-[9px] tracking-[0.2em] uppercase text-[#888888] hidden lg:block">
         {currentLang === 'pt' ? 'PORTO ALEGRE & SERRA GAÚCHA' : 'PORTO ALEGRE Y SERRA GAÚCHA'}

@@ -159,7 +159,7 @@ export default function Lightbox({
                 </div>
               ) : (
                 <img
-                  src={photo.url}
+                  src={photo.url || null}
                   alt={photo.title[currentLang]}
                   referrerPolicy="no-referrer"
                   className="max-h-[70vh] md:max-h-[75vh] max-w-[85vw] md:max-w-[70vw] object-contain shadow-2xl border border-white/5"

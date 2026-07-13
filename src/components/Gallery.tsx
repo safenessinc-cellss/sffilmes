@@ -127,7 +127,7 @@ export default function Gallery({
                     )}
 
                     <img
-                      src={item.url}
+                      src={item.url || null}
                       alt={item.title[currentLang]}
                       referrerPolicy="no-referrer"
                       className="w-full object-cover transition-transform duration-1000 ease-out scale-100 group-hover:scale-[1.03]"

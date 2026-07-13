@@ -37,7 +37,7 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
   } = useApp();
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'promo' | 'packages' | 'portfolio' | 'budget' | 'whatsapp' | 'admins'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'promo' | 'packages' | 'portfolio' | 'budget' | 'whatsapp' | 'logo' | 'contact' | 'admins'>('hero');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   
@@ -80,6 +80,28 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
     messageEs: config.whatsapp?.messageEs ?? "¡Hola! Me gustaría solicitar un presupuesto para mi evento."
   });
 
+  const [logoForm, setLogoForm] = useState({
+    useImage: config.logo?.useImage ?? false,
+    imageUrl: config.logo?.imageUrl ?? "",
+    text: config.logo?.text ?? "ST",
+    subtext: config.logo?.subtext ?? "FILMES"
+  });
+
+  const [contactForm, setContactForm] = useState({
+    email: config.contact?.email ?? "info@stfilmes.com",
+    phoneNumber: config.contact?.phoneNumber ?? "+55 (51) 98132-3388",
+    addressPt: config.contact?.addressPt ?? "Avenida da Liberdade, 110, Lisboa",
+    addressEs: config.contact?.addressEs ?? "Avenida da Liberdade, 110, Lisboa",
+    locations: config.contact?.locations ?? [
+      { city: "Lisboa", addr: "Avenida da Liberdade, 110", email: "lisboa@stfilmes.com" },
+      { city: "Madrid", addr: "Paseo de la Castellana, 45", email: "madrid@stfilmes.com" },
+      { city: "Milano", addr: "Via della Spiga, 8", email: "milano@stfilmes.com" }
+    ],
+    instagramUrl: config.contact?.instagramUrl ?? "https://instagram.com/stfilmes",
+    vimeoUrl: config.contact?.vimeoUrl ?? "https://vimeo.com/stfilmes",
+    linkedinUrl: config.contact?.linkedinUrl ?? "https://linkedin.com"
+  });
+
   // Keep form states in sync with real-time config updates from Firebase
   useEffect(() => {
     if (config) {
@@ -93,6 +115,26 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
           phoneNumber: config.whatsapp.phoneNumber,
           messagePt: config.whatsapp.messagePt,
           messageEs: config.whatsapp.messageEs
+        });
+      }
+      if (config.logo) {
+        setLogoForm({
+          useImage: config.logo.useImage,
+          imageUrl: config.logo.imageUrl,
+          text: config.logo.text,
+          subtext: config.logo.subtext
+        });
+      }
+      if (config.contact) {
+        setContactForm({
+          email: config.contact.email,
+          phoneNumber: config.contact.phoneNumber,
+          addressPt: config.contact.addressPt,
+          addressEs: config.contact.addressEs,
+          locations: config.contact.locations || [],
+          instagramUrl: config.contact.instagramUrl,
+          vimeoUrl: config.contact.vimeoUrl,
+          linkedinUrl: config.contact.linkedinUrl
         });
       }
     }
@@ -193,7 +235,9 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
       promotions: promoForm,
       style: styleForm,
       packages: config.packages, // preserved or updated via packages edit
-      whatsapp: whatsappForm
+      whatsapp: whatsappForm,
+      logo: logoForm,
+      contact: contactForm
     });
     triggerSuccess();
   };
@@ -374,7 +418,7 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
               <div className="w-full text-center space-y-6">
                 <div className="relative inline-block">
                   {adminUser.photoURL ? (
-                    <img src={adminUser.photoURL} alt={adminUser.displayName} referrerPolicy="no-referrer" className="w-20 h-20 rounded-full mx-auto border-2 border-[#C9A96E]/40 object-cover shadow-md" />
+                    <img src={adminUser.photoURL || null} alt={adminUser.displayName} referrerPolicy="no-referrer" className="w-20 h-20 rounded-full mx-auto border-2 border-[#C9A96E]/40 object-cover shadow-md" />
                   ) : (
                     <div className="w-20 h-20 rounded-full mx-auto bg-stone-100 flex items-center justify-center border border-[#C9A96E]/20">
                       <User className="w-8 h-8 text-stone-400" />
@@ -582,6 +626,30 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                       💬 {currentLang === 'pt' ? 'WhatsApp & Asistente' : 'WhatsApp & Asistente'}
                     </button>
                   </li>
+                  <li>
+                    <button
+                      onClick={() => setActiveTab('logo')}
+                      className={`w-full text-left px-4 py-3 rounded transition-all duration-200 ${
+                        activeTab === 'logo' 
+                          ? 'bg-[#C9A96E]/10 text-[#C9A96E] font-semibold border-l-2 border-[#C9A96E]' 
+                          : 'hover:bg-stone-50'
+                      }`}
+                    >
+                      🎨 {currentLang === 'pt' ? 'Design do Logo' : 'Diseño de Logo'}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => setActiveTab('contact')}
+                      className={`w-full text-left px-4 py-3 rounded transition-all duration-200 ${
+                        activeTab === 'contact' 
+                          ? 'bg-[#C9A96E]/10 text-[#C9A96E] font-semibold border-l-2 border-[#C9A96E]' 
+                          : 'hover:bg-stone-50'
+                      }`}
+                    >
+                      ✉️ {currentLang === 'pt' ? 'Contatos & Estúdios' : 'Contactos y Estudios'}
+                    </button>
+                  </li>
                   {isSuperAdmin && (
                     <li>
                       <button
@@ -691,13 +759,78 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Imagem de Fundo URL (Unsplash ou similar)</label>
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Imagem de Fundo Padrão URL (Unsplash ou similar)</label>
                       <input
                         type="text"
                         value={heroForm.imageUrl}
                         onChange={(e) => setHeroForm({ ...heroForm, imageUrl: e.target.value })}
                         className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
                       />
+                    </div>
+
+                    {/* Slideshow (Initial Images / Carrossel de Imagens) */}
+                    <div className="md:col-span-2 border-t border-[#F0EFEA] pt-4 mt-2 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-mono uppercase tracking-wider text-stone-500 font-semibold">
+                          {currentLang === 'pt' ? 'Carrossel de Imagens da Capa (Slideshow / Imagens Iniciais)' : 'Carrusel de Imágenes de Portada (Slideshow / Imágenes Iniciales)'}
+                        </label>
+                        <span className="text-[10px] text-[#C9A96E] font-mono">
+                          {heroForm.carouselImages?.length || 0} {currentLang === 'pt' ? 'imagens' : 'imágenes'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-500">
+                        {currentLang === 'pt' 
+                          ? 'Se você adicionar imagens aqui, elas serão exibidas em rotação suave com transições elegantes de fade-in. Se vazio, usará a Imagem de Fundo padrão acima.' 
+                          : 'Si agrega imágenes aquí, se mostrarán en rotación suave con transiciones elegantes de fade-in. Si está vacío, usará la Imagen de Portada por defecto de arriba.'}
+                      </p>
+                      
+                      {/* List of current carousel images */}
+                      <div className="space-y-2">
+                        {(heroForm.carouselImages || []).map((imgUrl, idx) => (
+                          <div key={idx} className="flex items-center space-x-2 bg-white p-2 rounded border border-[#F0EFEA]">
+                            {imgUrl ? (
+                              <img src={imgUrl} alt="Slide Preview" className="h-8 w-12 object-cover rounded bg-stone-100" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="h-8 w-12 rounded bg-stone-100 border border-dashed border-stone-200 flex items-center justify-center text-[8px] text-stone-400 font-mono select-none">Vazio</div>
+                            )}
+                            <input
+                              type="text"
+                              value={imgUrl}
+                              onChange={(e) => {
+                                const list = [...(heroForm.carouselImages || [])];
+                                list[idx] = e.target.value;
+                                setHeroForm({ ...heroForm, carouselImages: list });
+                              }}
+                              className="flex-1 px-2 py-1 text-xs bg-stone-50 border border-[#F0EFEA] rounded focus:outline-none"
+                              placeholder="https://images.unsplash.com/..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = (heroForm.carouselImages || []).filter((_, i) => i !== idx);
+                                setHeroForm({ ...heroForm, carouselImages: list });
+                              }}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              title="Remover"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add dynamic image url */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = [...(heroForm.carouselImages || []), ""];
+                          setHeroForm({ ...heroForm, carouselImages: list });
+                        }}
+                        className="flex items-center space-x-1.5 text-xs font-mono text-[#C9A96E] hover:text-[#b0915a] bg-white border border-[#C9A96E]/20 px-3 py-1.5 rounded transition-all"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>{currentLang === 'pt' ? 'Adicionar Nova Imagem de Fundo' : 'Agregar Nueva Imagen de Fondo'}</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1612,7 +1745,7 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                             <div>
                               <div className="relative">
                                 <img
-                                  src={item.url}
+                                  src={item.url || null}
                                   alt=""
                                   className="w-full h-28 object-cover filter grayscale"
                                 />
@@ -1760,6 +1893,273 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                 </div>
               )}
 
+              {activeTab === 'logo' && (
+                <div className="space-y-6">
+                  <div className="border-b border-[#F0EFEA] pb-3">
+                    <h4 className="font-serif text-lg italic text-[#141414]">{currentLang === 'pt' ? 'Logo & Identidade Visual' : 'Logo e Identidad Visual'}</h4>
+                    <p className="text-xs text-stone-500">
+                      {currentLang === 'pt' 
+                        ? 'Altere as iniciais, subtítulo do logo ou envie uma imagem personalizada para representar a ST Filmes no cabeçalho e páginas.' 
+                        : 'Cambie las iniciales, subtítulo del logo o suba una imagen personalizada para representar a ST Filmes en el encabezado y páginas.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Toggle use image logo vs text svg logo */}
+                    <div className="bg-white p-4 rounded border border-[#F0EFEA] space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id="logo-use-image"
+                          checked={logoForm.useImage}
+                          onChange={(e) => setLogoForm({ ...logoForm, useImage: e.target.checked })}
+                          className="h-4 w-4 text-[#C9A96E] border-stone-300 focus:ring-[#C9A96E]"
+                        />
+                        <label htmlFor="logo-use-image" className="text-xs font-mono uppercase tracking-wider text-[#141414] font-semibold cursor-pointer">
+                          {currentLang === 'pt' ? 'Usar Imagem como Logo (em vez de texto SVG)' : 'Usar Imagen como Logo (en lugar de texto SVG)'}
+                        </label>
+                      </div>
+
+                      {logoForm.useImage ? (
+                        <div className="space-y-2 pt-2 border-t border-[#F0EFEA]">
+                          <label className="text-xs font-mono uppercase tracking-wider text-stone-500 block">URL da Imagem do Logo (PNG, SVG ou JPG transparente)</label>
+                          <input
+                            type="text"
+                            value={logoForm.imageUrl}
+                            onChange={(e) => setLogoForm({ ...logoForm, imageUrl: e.target.value })}
+                            className="w-full px-3 py-2 bg-[#FDFCFB] border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                            placeholder="https://example.com/logo.png"
+                          />
+                          <p className="text-[10px] text-stone-400 font-mono">
+                            {currentLang === 'pt' ? 'Recomendado: altura de 40px-80px com fundo transparente.' : 'Recomendado: altura de 40px-80px con fondo transparente.'}
+                          </p>
+                          {logoForm.imageUrl && (
+                            <div className="mt-2 p-4 bg-stone-100 rounded flex justify-center border border-dashed border-stone-200">
+                              <img src={logoForm.imageUrl} alt="Preview Logo" className="h-12 object-contain" referrerPolicy="no-referrer" />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#F0EFEA]">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Iniciais do Logo (Máx. 2 letras)</label>
+                            <input
+                              type="text"
+                              maxLength={2}
+                              value={logoForm.text}
+                              onChange={(e) => setLogoForm({ ...logoForm, text: e.target.value.toUpperCase() })}
+                              className="w-full px-3 py-2 bg-[#FDFCFB] border border-[#F0EFEA] rounded text-sm font-serif font-bold uppercase"
+                              placeholder="ST"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Subtítulo do Logo</label>
+                            <input
+                              type="text"
+                              value={logoForm.subtext}
+                              onChange={(e) => setLogoForm({ ...logoForm, subtext: e.target.value.toUpperCase() })}
+                              className="w-full px-3 py-2 bg-[#FDFCFB] border border-[#F0EFEA] rounded text-sm font-mono tracking-wider uppercase"
+                              placeholder="FILMES"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center space-x-3">
+                    <button
+                      onClick={handleSaveConfig}
+                      className="bg-[#141414] hover:bg-[#C9A96E] text-white px-5 py-2.5 rounded font-sans text-xs tracking-wider uppercase font-semibold transition-colors flex items-center space-x-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>{currentLang === 'pt' ? 'Salvar Configurações de Logo' : 'Guardar Ajustes de Logo'}</span>
+                    </button>
+                    {saveSuccess && (
+                      <span className="text-xs text-green-600 font-mono animate-fade-in">
+                        ✓ {currentLang === 'pt' ? 'Salvo no Firebase!' : '¡Guardado en Firebase!'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'contact' && (
+                <div className="space-y-6">
+                  <div className="border-b border-[#F0EFEA] pb-3">
+                    <h4 className="font-serif text-lg italic text-[#141414]">{currentLang === 'pt' ? 'Contatos, Redes & Estúdios' : 'Contactos, Redes y Estudios'}</h4>
+                    <p className="text-xs text-stone-500">
+                      {currentLang === 'pt' 
+                        ? 'Atualize seu email principal, telefone geral, links de redes sociais e os endereços das filiais.' 
+                        : 'Actualice su correo principal, teléfono general, enlaces de redes sociales y las direcciones de las filiales.'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">E-mail Principal</label>
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                        placeholder="info@stfilmes.com"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Telefone Geral (com formatação)</label>
+                      <input
+                        type="text"
+                        value={contactForm.phoneNumber}
+                        onChange={(e) => setContactForm({ ...contactForm, phoneNumber: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                        placeholder="+55 (51) 98132-3388"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Endereço Principal (PT)</label>
+                      <input
+                        type="text"
+                        value={contactForm.addressPt}
+                        onChange={(e) => setContactForm({ ...contactForm, addressPt: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Dirección Principal (ES)</label>
+                      <input
+                        type="text"
+                        value={contactForm.addressEs}
+                        onChange={(e) => setContactForm({ ...contactForm, addressEs: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                      />
+                    </div>
+
+                    {/* Social Media Links */}
+                    <div className="md:col-span-2 border-t border-[#F0EFEA] pt-4 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Instagram URL</label>
+                        <input
+                          type="text"
+                          value={contactForm.instagramUrl}
+                          onChange={(e) => setContactForm({ ...contactForm, instagramUrl: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono uppercase tracking-wider text-stone-500">Vimeo URL</label>
+                        <input
+                          type="text"
+                          value={contactForm.vimeoUrl}
+                          onChange={(e) => setContactForm({ ...contactForm, vimeoUrl: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono uppercase tracking-wider text-stone-500">LinkedIn URL</label>
+                        <input
+                          type="text"
+                          value={contactForm.linkedinUrl}
+                          onChange={(e) => setContactForm({ ...contactForm, linkedinUrl: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-[#F0EFEA] rounded text-sm focus:outline-none focus:border-[#C9A96E]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Studio Locations Hub List Editor */}
+                    <div className="md:col-span-2 border-t border-[#F0EFEA] pt-4 mt-2 space-y-3">
+                      <label className="text-xs font-mono uppercase tracking-wider text-stone-500 font-semibold block">
+                        {currentLang === 'pt' ? 'Estúdios & Filiais' : 'Estudios y Sucursales'}
+                      </label>
+                      <div className="space-y-2">
+                        {contactForm.locations.map((loc, idx) => (
+                          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-[#FDFCFB] p-3 rounded border border-[#F0EFEA] relative">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-stone-400 uppercase">Cidade / Ciudad</span>
+                              <input
+                                type="text"
+                                value={loc.city}
+                                onChange={(e) => {
+                                  const list = [...contactForm.locations];
+                                  list[idx].city = e.target.value;
+                                  setContactForm({ ...contactForm, locations: list });
+                                }}
+                                className="w-full px-2 py-1 text-xs bg-white border border-stone-200 rounded"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-stone-400 uppercase">Endereço / Dirección</span>
+                              <input
+                                type="text"
+                                value={loc.addr}
+                                onChange={(e) => {
+                                  const list = [...contactForm.locations];
+                                  list[idx].addr = e.target.value;
+                                  setContactForm({ ...contactForm, locations: list });
+                                }}
+                                className="w-full px-2 py-1 text-xs bg-white border border-stone-200 rounded"
+                              />
+                            </div>
+                            <div className="space-y-1 pr-6">
+                              <span className="text-[10px] font-mono text-stone-400 uppercase">E-mail Filial</span>
+                              <input
+                                type="text"
+                                value={loc.email}
+                                onChange={(e) => {
+                                  const list = [...contactForm.locations];
+                                  list[idx].email = e.target.value;
+                                  setContactForm({ ...contactForm, locations: list });
+                                }}
+                                className="w-full px-2 py-1 text-xs bg-white border border-stone-200 rounded"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = contactForm.locations.filter((_, i) => i !== idx);
+                                setContactForm({ ...contactForm, locations: list });
+                              }}
+                              className="absolute top-3 right-3 text-red-500 hover:text-red-700"
+                              title="Remover filial"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = [...contactForm.locations, { city: "", addr: "", email: "" }];
+                          setContactForm({ ...contactForm, locations: list });
+                        }}
+                        className="flex items-center space-x-1.5 text-xs font-mono text-[#C9A96E] hover:text-[#b0915a] bg-white border border-[#C9A96E]/20 px-3 py-1.5 rounded transition-all"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>{currentLang === 'pt' ? 'Adicionar Nova Filial' : 'Agregar Nueva Sucursal'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center space-x-3">
+                    <button
+                      onClick={handleSaveConfig}
+                      className="bg-[#141414] hover:bg-[#C9A96E] text-white px-5 py-2.5 rounded font-sans text-xs tracking-wider uppercase font-semibold transition-colors flex items-center space-x-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>{currentLang === 'pt' ? 'Salvar Configurações de Contato' : 'Guardar Ajustes de Contacto'}</span>
+                    </button>
+                    {saveSuccess && (
+                      <span className="text-xs text-green-600 font-mono animate-fade-in">
+                        ✓ {currentLang === 'pt' ? 'Salvo no Firebase!' : '¡Guardado en Firebase!'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* TAB 8: ADMIN MANAGEMENT (SUPER ADMIN ONLY) */}
               {activeTab === 'admins' && isSuperAdmin && (
                 <div className="space-y-6">
@@ -1838,7 +2238,7 @@ export default function AdminDashboard({ isOpen, onClose, currentLang }: AdminDa
                               <div className="flex items-center space-x-3">
                                 {authDoc.photoURL ? (
                                   <img 
-                                    src={authDoc.photoURL} 
+                                    src={authDoc.photoURL || null} 
                                     alt={authDoc.displayName} 
                                     referrerPolicy="no-referrer"
                                     className="w-10 h-10 rounded-full border border-stone-200 object-cover" 
